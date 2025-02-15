@@ -5,7 +5,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
-      POSTGRES_PASSWORD: ${DB_PASS:-password}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
       POSTGRES_DB: ${DB_NAME:-calorie_db}
     ports:
       - "5432:5432"

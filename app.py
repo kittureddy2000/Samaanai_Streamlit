@@ -8,7 +8,7 @@ import plotly.express as px
 
 # Database connection (using environment variables for security)
 db_user = os.environ.get("DB_USER", "postgres")
-db_pass = os.environ.get("DB_PASS", "password")
+db_pass = os.environ.get("DB_PASSWORD", "password")
 db_name = os.environ.get("DB_NAME", "calorie_db")
 db_host = os.environ.get("DB_HOST", "localhost")  # This will be the Cloud SQL instance connection name
 db_port = os.environ.get("DB_PORT", "5432")  # Default Postgres port
