@@ -1,0 +1,29 @@
+# General
+.DS_Store
+*.pyc
+*.log
+__pycache__/
+.pytest_cache/
+venv/
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# Local development environment
+.env
+
+# Data (Important! Customize this)
+# data/  # Example: Ignore a 'data' directory if it contains large, generated data
+# *.db   # Example: Ignore SQLite database files
+
+# Streamlit
+.streamlit
+
+# Jupyter Notebook
+.ipynb_checkpoints/
+
+# OS generated files
+Thumbs.db
