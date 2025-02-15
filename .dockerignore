@@ -1,0 +1,28 @@
+# General
+.DS_Store
+.env
+*.pyc
+*.log
+__pycache__/
+.pytest_cache/
+venv/
+
+# Git
+.git/
+.gitignore
+
+# IDEs and Editors
+.idea/
+.vscode/
+*.swp
+*~
+
+# Data (Important!  Consider carefully)
+# data/
+# *.db
+
+# Streamlit specific
+.streamlit/
+
+# Google Cloud Build specific files
+cloudbuild.yaml

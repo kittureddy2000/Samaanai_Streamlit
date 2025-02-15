@@ -16,8 +16,8 @@ venv/
 .env
 
 # Data (Important! Customize this)
-# data/  # Example: Ignore a 'data' directory if it contains large, generated data
-# *.db   # Example: Ignore SQLite database files
+# data/
+# *.db
 
 # Streamlit
 .streamlit
