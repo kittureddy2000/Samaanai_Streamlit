@@ -22,7 +22,7 @@ steps:
         '--platform', 'managed',
         '--allow-unauthenticated', # Or configure authentication as needed
         '--set-secrets',  # Connect to Secret Manager for the password
-        'DB_PASSWORD=DB_PASSWORD:latest'
+        # 'DB_PASSWORD=DB_PASSWORD:latest'
 
       ]
 images:
