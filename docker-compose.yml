@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_USER: ${DB_USER:-postgres}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-password}
-      POSTGRES_DB: ${DB_NAME:-calorie_db}
+      POSTGRES_DB: ${DB_NAME:-samaanai-db}
     ports:
       - "5432:5432"
     volumes:
@@ -19,6 +19,8 @@ services:
     environment:
       DB_HOST: db
       DB_PORT: ${DB_PORT:-5432}
+      DB_NAME: ${DB_NAME:-samaanai-db}       # Corrected default
+      DB_PASSWORD: ${DB_PASSWORD:-password}
     depends_on:
       - db
     volumes:
