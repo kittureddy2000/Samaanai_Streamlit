@@ -17,4 +17,4 @@ EXPOSE 8501
 ENV STREAMLIT_SERVER_PORT=8501
 
 # Run calories_counter.py when the container launches
-CMD ["streamlit", "run", "calories_counter.py", "--server.address=0.0.0.0", "--server.port=8501"]
+CMD ["streamlit", "run", "app.py", "--server.address=0.0.0.0", "--server.port=8501"]
