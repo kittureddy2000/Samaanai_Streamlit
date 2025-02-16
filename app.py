@@ -13,6 +13,14 @@ db_name = os.environ.get("DB_NAME", "calorie_db")
 db_host = os.environ.get("DB_HOST", "localhost")  # This will be the Cloud SQL instance connection name
 db_port = os.environ.get("DB_PORT", "5432")  # Default Postgres port
 
+st.write("Debugging Environment Variables:")
+st.write(f"DB_USER: {os.environ.get('DB_USER', 'Not Set')}")
+st.write(f"DB_PASSWORD: {os.environ.get('DB_PASSWORD', 'Not Set')}")  # Careful with this!
+st.write(f"DB_NAME: {os.environ.get('DB_NAME', 'Not Set')}")
+st.write(f"DB_HOST: {os.environ.get('DB_HOST', 'Not Set')}")
+st.write(f"DB_PORT: {os.environ.get('DB_PORT', 'Not Set')}")
+
+
 # --- Database Functions ---
 def get_db_connection():
     """Creates a database connection."""
