@@ -21,8 +21,8 @@ steps:
         '--region', '$_REGION',  # Use the substitution variable
         '--platform', 'managed',
         '--allow-unauthenticated', # Or configure authentication as needed
-        # '--set-secrets',  # Connect to Secret Manager for the password
-        # 'DB_PASSWORD=DB_PASSWORD:latest'
+        '--set-secrets',  # Connect to Secret Manager for the password
+        'DB_PASSWORD=DB_PASSWORD:latest'
 
       ]
 images:
