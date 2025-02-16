@@ -17,12 +17,22 @@ db_port = os.environ.get("DB_PORT", "5432")  # Default Postgres port
 def get_db_connection():
     """Creates a database connection."""
     try:
-        engine = create_engine(f"postgresql+psycopg2://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}")
+        # If using Cloud SQL Unix socket (db_host starts with '/cloudsql/')
+        if db_host.startswith("/cloudsql/"):
+            engine = create_engine(
+                f"postgresql+psycopg2://{db_user}:{db_pass}@/{db_name}?host={db_host}"
+            )
+        else:
+            # Fallback for TCP connections
+            engine = create_engine(
+                f"postgresql+psycopg2://{db_user}:{db_pass}@{db_host}:{db_port}/{db_name}"
+            )
         conn = engine.connect()
         return conn
     except Exception as e:
         st.error(f"Error connecting to database: {e}")
         return None
+
 
 def create_tables(conn):
     """Creates the necessary tables if they don't exist."""
