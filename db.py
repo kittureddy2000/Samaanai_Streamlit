@@ -5,6 +5,8 @@ import os
 import pandas as pd
 import logging
 from sqlalchemy.exc import SQLAlchemyError
+import streamlit as st
+
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
@@ -29,7 +31,7 @@ def get_db_connection():
         logger.error(f"CRITICAL ERROR: Could not connect to the database: {e}")
         return None
 
-def create_tables(conn):
+def create_calorie_counter_tables(conn):
     """Creates the necessary tables, including a unique constraint."""
     try:
         with conn.execution_options(isolation_level="AUTOCOMMIT").begin() as trans:
@@ -274,3 +276,29 @@ def get_all_data_for_date(conn, target_date):
     except Exception as e:
         logger.exception(f"Error retrieving all data for date: {e}")
         return pd.DataFrame()
+    
+def create_stock_table(conn):
+    """Creates the stocks table if it doesn't exist."""
+    try:
+        with conn.begin() as trans:
+            conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS stocks (
+                    id SERIAL PRIMARY KEY,
+                    user_id INTEGER NOT NULL,
+                    symbol VARCHAR(10) NOT NULL,
+                    name VARCHAR(100),
+                    quantity INTEGER NOT NULL,
+                    date_purchased DATE,
+                    date_sold DATE,
+                    purchase_price NUMERIC(10, 2) NOT NULL,
+                    sold_price NUMERIC(10, 2),
+                    source VARCHAR(100),
+                    comments TEXT,
+                    UNIQUE(user_id, symbol)
+                );
+            """))
+        logger.info("Stocks table created/exists.")
+    except Exception as e:
+        logger.exception(f"Error creating stocks table: {e}")
+        st.error(f"Error creating database table: {e}") # Show error to user.
+        st.stop() # Stop execution

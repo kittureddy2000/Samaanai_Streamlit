@@ -6,7 +6,8 @@ from datetime import date, timedelta
 from db import (get_db_connection, insert_calorie_data,
                 get_calorie_data, insert_weight_loss_goal,
                 get_current_weight_loss_goal,
-                get_all_data_for_date, insert_meal_details)
+                get_all_data_for_date, insert_meal_details,
+                create_calorie_counter_tables)
 from allpages.utils import get_thursday_to_wednesday_range  # Make SURE this is correct
 import logging
 from sqlalchemy.exc import SQLAlchemyError
@@ -14,8 +15,10 @@ from sqlalchemy.exc import SQLAlchemyError
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
 
-def calorie_counter_page():
+def calorie_counter_page(conn):
     st.title("Calorie Counter")
+
+    create_calorie_counter_tables(conn)
 
     intake_date = st.date_input("Date", date.today())
     logger.info(f"Selected date: {intake_date}")
