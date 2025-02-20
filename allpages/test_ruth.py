@@ -2,14 +2,14 @@ import webbrowser
 import json
 import logging
 import os
-import re
+import re  # Import the regular expression module
 import requests
 import streamlit as st
-from requests_oauthlib import OAuth1  # Import OAuth1 from requests_oauthlib
+from rauth import OAuth1Service
 from logging.handlers import RotatingFileHandler
-from urllib.parse import urlencode, urljoin, parse_qs
+from urllib.parse import urlencode, urljoin  # Import urlencode
 
-# Logger setup (keep this as is)
+# Logger setup
 logger = logging.getLogger('etrade_logger')
 logger.setLevel(logging.DEBUG)
 handler = RotatingFileHandler("etrade.log", maxBytes=5 * 1024 * 1024, backupCount=3)
@@ -19,121 +19,57 @@ logger.addHandler(handler)
 
 def oauth():
     """Authenticate user via OAuth and return an authenticated session."""
+    etrade = OAuth1Service(
+        name="etrade",
+        consumer_key=os.environ.get("CONSUMER_KEY"),
+        consumer_secret=os.environ.get("CONSUMER_SECRET"),
+        request_token_url="https://api.etrade.com/oauth/request_token",
+        access_token_url="https://api.etrade.com/oauth/access_token",
+        authorize_url="https://us.etrade.com/e/t/etws/authorize?key={}&token={}",
+        base_url="https://api.etrade.com"
+    )
 
-    consumer_key = os.environ.get("CONSUMER_KEY")
-    consumer_secret = os.environ.get("CONSUMER_SECRET")
-    base_url = os.environ.get("PROD_BASE_URL", "https://api.etrade.com")
+    base_url = os.environ.get("SANDBOX_BASE_URL", "https://apisb.etrade.com")
+    st.warning("SANDBOX_BASE_URL environment variable not set. Using default.") if not os.environ.get("SANDBOX_BASE_URL") else None
 
-    if not consumer_key or not consumer_secret:
-        logger.error("Consumer key or secret not set in environment variables.")
-        st.error("Consumer key or secret not set in environment variables.")
-        return None, None
+    request_token, request_token_secret = etrade.get_request_token(params={"oauth_callback": "oob", "format": "json"})
 
-    logger.debug(f"Consumer Key: {consumer_key}")
-    logger.debug(f"Consumer Secret: {consumer_secret}")
-    logger.debug(f"Base URL: {base_url}")
-
-    st.warning("PROD_BASE_URL not set") if not os.environ.get("PROD_BASE_URL") else None
-
-    request_token_url = base_url + "/oauth/request_token"
-    access_token_url = base_url + "/oauth/access_token"
-    authorize_url = "https://us.etrade.com/e/t/etws/authorize"  # No {} placeholders
-
-    # 1. Get Request Token
-    if "request_token" not in st.session_state:
-        oauth = OAuth1(consumer_key, client_secret=consumer_secret,
-                    callback_uri='oob',)  # Use 'oob' for out-of-band
-        r = requests.post(url=request_token_url, auth=oauth, params={'format': 'json'})
-        r.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
-        credentials = parse_qs(r.text)
-        request_token = credentials.get('oauth_token')[0]
-        request_token_secret = credentials.get('oauth_token_secret')[0]
-   
-        logger.debug("SET request_token and request_token_secret in session")
-        st.session_state["request_token"] = request_token
-        st.session_state["request_token_secret"] = request_token_secret
-    else:
-        request_token = st.session_state["request_token"]
-        request_token_secret = st.session_state["request_token_secret"]
-
-    # logger.debug(f"Credentials after parse_qs: {credentials}")
-    logger.debug(f"Request Token: {st.session_state['request_token']}")
-    logger.debug(f"Request Token Secret: {st.session_state['request_token']}")
-
-    # 2. Authorize
     params = {
-        'key': consumer_key,
+        'key': etrade.consumer_key,
         'token': request_token
     }
     query_string = urlencode(params)
-    auth_url = urljoin(authorize_url, '?' + query_string)
+    authorize_url = urljoin(etrade.authorize_url.split('?')[0], '?' + query_string)
 
-    st.markdown(f"Please authorize your E*TRADE account by clicking [here]({auth_url}).")
+    st.markdown(f"Please authorize your E*TRADE account by clicking [here]({authorize_url}).")
     verification_code = st.text_input("Enter the verification code from E*TRADE:", "")
 
     if st.button("Submit Verification Code"):
         if verification_code:
+            # Sanitize the input *immediately*.  Keep only alphanumeric characters.
             verification_code = re.sub(r"[^a-zA-Z0-9]", "", verification_code).strip()
             logger.debug(f"Sanitized verification code: {verification_code}")
 
             if not verification_code:
-                st.error("Verification code invalid")
+                st.error("Verification code contained only invalid characters. Please try again.")
                 return None, None
-
-            # 3. Get Access Token
-            logger.debug("---- Access Token Request Details ----")
-            logger.debug(f"Consumer Key: {consumer_key}")
-            logger.debug(f"Consumer Secret: {consumer_secret}")
-            logger.debug(f"Request Token: {request_token}")
-            logger.debug(f"Request Token Secret: {request_token_secret}")
-            logger.debug(f"Verification Code: {verification_code}")
 
             try:
-                oauth = OAuth1(consumer_key,
-                               client_secret=consumer_secret,
-                               resource_owner_key=st.session_state["request_token"],
-                               resource_owner_secret=st.session_state["request_token_secret"],
-                               verifier=verification_code)
-                r = requests.post(url=access_token_url, auth=oauth)
-                r.raise_for_status()
-
-                credentials = parse_qs(r.text)
-                access_token = credentials.get('oauth_token')[0]
-                access_token_secret = credentials.get('oauth_token_secret')[0]
-
-                logger.debug(f"Access Token: {access_token}")
-                logger.debug(f"Access Token Secret: {access_token_secret}")
-
-                # Create a session (using requests.Session)
-                session = requests.Session()
-                session.auth = OAuth1(consumer_key,
-                                     client_secret=consumer_secret,
-                                     resource_owner_key=access_token,
-                                     resource_owner_secret=access_token_secret)
-
+                # Pass the *sanitized* string directly to get_auth_session.
+                # No encoding/decoding needed!
+                session = etrade.get_auth_session(request_token, request_token_secret, params={"oauth_verifier": verification_code})
                 st.success("Authentication successful!")
                 return session, base_url
-
-            except requests.exceptions.RequestException as e:
+            except Exception as e:
                 logger.error(f"Authentication error: {e}")
-                if "401" in str(e): # Example: Check for 401 Unauthorized (adjust based on actual errors)
-                    st.error(f"Authentication error: Invalid Consumer Key or Secret. Please double-check your environment variables.")
-                    logger.error(f"Authentication error: Invalid Consumer Key or Secret. Please double-check your environment variables.")
-                elif "verification_code" in str(e): # Example: Error might mention verification code
-                    st.error(f"Authentication error: Problem with verification code. Ensure you copied it correctly from the E*TRADE authorization page.")
-                    logger.error(f"Authentication error: Problem with verification code. Ensure you copied it correctly from the E*TRADE authorization page.")
-                else:
-                    st.error(f"Authentication error: {e}. Check the logs for more details (etrade.log).")
-                    logger.error(f"Authentication error: {e}")
+                st.error(f"Authentication error: {e}")
                 return None, None
-
         else:
-            st.error("Please enter verification")
+            st.error("Please enter a verification code.")
             return None, None
-
     return None, None
 
-# Example of using the session (modify your Market, Accounts, etc. classes)
+# Rest of your code (Market, Accounts, Order classes) remains the same...
 class Market:
     def __init__(self, session, base_url):
         self.session = session
@@ -141,12 +77,14 @@ class Market:
 
     def quotes(self, symbol):
         url = self.base_url + f"/v1/market/quote/{symbol}.json"
-        response = self.session.get(url)  # Use the session here
+        response = self.session.get(url)
         if response.status_code == 200:
             try:
                 data = response.json()
+                # Check if 'QuoteResponse' and 'QuoteData' exist and have at least one element
                 if 'QuoteResponse' in data and 'QuoteData' in data['QuoteResponse'] and len(data['QuoteResponse']['QuoteData']) > 0:
                     quote_data = data['QuoteResponse']['QuoteData'][0]
+                    # Check if 'Product' and 'All' exist
                     if 'Product' in quote_data and 'All' in quote_data:
                         st.write(f"Stock Symbol: {quote_data['Product']['symbol']}")
                         st.write(f"Last Price: ${quote_data['All']['lastTrade']}")
@@ -170,7 +108,7 @@ class Accounts:
 
     def portfolio(self):
         url = self.base_url + "/v1/accounts/list.json"
-        response = self.session.get(url)  # Use the session here
+        response = self.session.get(url, header_auth=True)
         if response.status_code == 200:
             st.write("Portfolio data retrieved successfully.")
             logger.info(f"Portfolio data: {response.text}")
@@ -194,11 +132,8 @@ def etrade_stocks_page(conn=None):
     """Streamlit page for managing E-Trade stocks"""
     st.title("E-Trade Stock Trading")
     session, base_url = oauth()
-    
-    logger.debug(f"Session: {session}")
-    logger.debug(f"Base URL: {base_url}")
+
     if session:
-        logger.info("Session created successfully. Ready to make API calls.")
         option = st.sidebar.selectbox("Select Option", ["Market Quotes", "Portfolio", "Place Order"])
 
         if option == "Market Quotes":
@@ -219,7 +154,7 @@ def etrade_stocks_page(conn=None):
             # Get account list to select from (you'll need this for placing orders)
             accounts = Accounts(session, base_url)  # You might want to cache this
             account_list_url = base_url + "/v1/accounts/list.json"
-            account_list_response = accounts.session.get(account_list_url)
+            account_list_response = accounts.session.get(account_list_url, header_auth=True)
 
             if account_list_response.status_code == 200:
                 try:
